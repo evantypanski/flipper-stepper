@@ -38,8 +38,8 @@ typedef struct {
   Submenu *stepmenu;
   Submenu *dirmenu;
   Widget *stepping_widget;
-  const GpioPin *dirPin;
-  const GpioPin *stepPin;
+  const GpioPin *dir_pin;
+  const GpioPin *step_pin;
   bool state;
 } StepperContext;
 
@@ -59,9 +59,9 @@ static void stepper_tick_callback(void *ctx) {
   FURI_LOG_D("stepper", "TICK!");
   furi_assert(ctx);
   StepperContext *context = ctx;
-  furi_hal_gpio_write(context->stepPin, true);
+  furi_hal_gpio_write(context->step_pin, true);
   furi_delay_us(10);
-  furi_hal_gpio_write(context->stepPin, false);
+  furi_hal_gpio_write(context->step_pin, false);
 }
 
 static bool stepper_event_callback(void *ctx, uint32_t event) {
@@ -141,13 +141,13 @@ static void switch_pin(StepperContext *context, const GpioPin **pin,
 static void stepper_dispatcher_step_pin_callback(void *ctx, uint32_t index) {
   furi_assert(ctx);
   StepperContext *context = ctx;
-  switch_pin(context, &context->stepPin, index);
+  switch_pin(context, &context->step_pin, index);
 }
 
 static void stepper_dispatcher_dir_pin_callback(void *ctx, uint32_t index) {
   furi_assert(ctx);
   StepperContext *context = ctx;
-  switch_pin(context, &context->stepPin, index);
+  switch_pin(context, &context->step_pin, index);
 }
 
 static void stepping_button_callback(GuiButtonType button_type,
@@ -174,11 +174,12 @@ static void add_pins_to_submenu(StepperContext *context, Submenu *submenu,
   submenu_add_item(submenu, "C0", PinC0, callback, context);
 }
 
-static StepperContext *stepper_context_alloc(uint8_t dirPin, uint8_t stepPin) {
+static StepperContext *stepper_context_alloc(uint8_t dir_pin,
+                                             uint8_t step_pin) {
   StepperContext *context = malloc(sizeof(StepperContext));
 
-  context->dirPin = furi_hal_resources_pin_by_number(dirPin)->pin;
-  context->stepPin = furi_hal_resources_pin_by_number(stepPin)->pin;
+  context->dir_pin = furi_hal_resources_pin_by_number(dir_pin)->pin;
+  context->step_pin = furi_hal_resources_pin_by_number(step_pin)->pin;
 
   context->gui = furi_record_open(RECORD_GUI);
 
@@ -253,19 +254,20 @@ int32_t stepper_app(void *p) {
   UNUSED(p);
   StepperContext *context = stepper_context_alloc(6, 7);
 
-  furi_hal_gpio_write(context->stepPin, false);
-  furi_hal_gpio_init(context->stepPin, GpioModeOutputPushPull, GpioPullNo,
+  furi_hal_gpio_write(context->step_pin, false);
+  furi_hal_gpio_init(context->step_pin, GpioModeOutputPushPull, GpioPullNo,
                      GpioSpeedLow);
-  furi_hal_gpio_write(context->dirPin, false);
-  furi_hal_gpio_init(context->dirPin, GpioModeOutputPushPull, GpioPullNo,
+  furi_hal_gpio_write(context->dir_pin, false);
+  furi_hal_gpio_init(context->dir_pin, GpioModeOutputPushPull, GpioPullNo,
                      GpioSpeedLow);
 
   view_dispatcher_switch_to_view(context->view_dispatcher, ViewIndexSubmenu);
   view_dispatcher_run(context->view_dispatcher);
 
-  furi_hal_gpio_init(context->stepPin, GpioModeAnalog, GpioPullNo,
+  furi_hal_gpio_init(context->step_pin, GpioModeAnalog, GpioPullNo,
                      GpioSpeedLow);
-  furi_hal_gpio_init(context->dirPin, GpioModeAnalog, GpioPullNo, GpioSpeedLow);
+  furi_hal_gpio_init(context->dir_pin, GpioModeAnalog, GpioPullNo,
+                     GpioSpeedLow);
 
   stepper_context_free(context);
 
